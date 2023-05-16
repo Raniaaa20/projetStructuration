@@ -1,0 +1,128 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+#  Copyright 2001-2006 The Apache Software Foundation.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+# ----------------------------------------------------------------------------
+#
+#   Copyright (c) 2001-2006 The Apache Software Foundation.  All rights
+#   reserved.
+
+
+# resolve links - $0 may be a softlink
+PRG="$0"
+
+while [ -h "$PRG" ]; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "$PRG"`/"$link"
+  fi
+done
+
+PRGDIR=`dirname "$PRG"`
+BASEDIR=`cd "$PRGDIR/.." >/dev/null; pwd`
+
+# Reset the REPO variable. If you need to influence this use the environment setup file.
+REPO=
+
+
+# OS specific support.  $var _must_ be set to either true or false.
+cygwin=false;
+darwin=false;
+case "`uname`" in
+  CYGWIN*) cygwin=true ;;
+  Darwin*) darwin=true
+           if [ -z "$JAVA_VERSION" ] ; then
+             JAVA_VERSION="CurrentJDK"
+           else
+             echo "Using Java version: $JAVA_VERSION"
+           fi
+		   if [ -z "$JAVA_HOME" ]; then
+		      if [ -x "/usr/libexec/java_home" ]; then
+			      JAVA_HOME=`/usr/libexec/java_home`
+			  else
+			      JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Versions/${JAVA_VERSION}/Home
+			  fi
+           fi       
+           ;;
+esac
+
+if [ -z "$JAVA_HOME" ] ; then
+  if [ -r /etc/gentoo-release ] ; then
+    JAVA_HOME=`java-config --jre-home`
+  fi
+fi
+
+# For Cygwin, ensure paths are in UNIX format before anything is touched
+if $cygwin ; then
+  [ -n "$JAVA_HOME" ] && JAVA_HOME=`cygpath --unix "$JAVA_HOME"`
+  [ -n "$CLASSPATH" ] && CLASSPATH=`cygpath --path --unix "$CLASSPATH"`
+fi
+
+# If a specific java binary isn't specified search for the standard 'java' binary
+if [ -z "$JAVACMD" ] ; then
+  if [ -n "$JAVA_HOME"  ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+      # IBM's JDK on AIX uses strange locations for the executables
+      JAVACMD="$JAVA_HOME/jre/sh/java"
+    else
+      JAVACMD="$JAVA_HOME/bin/java"
+    fi
+  else
+    JAVACMD=`which java`
+  fi
+fi
+
+if [ ! -x "$JAVACMD" ] ; then
+  echo "Error: JAVA_HOME is not defined correctly." 1>&2
+  echo "  We cannot execute $JAVACMD" 1>&2
+  exit 1
+fi
+
+if [ -z "$REPO" ]
+then
+  REPO="$BASEDIR"/repo
+fi
+
+CLASSPATH="$BASEDIR"/etc:"$REPO"/org/openjfx/javafx-controls/11/javafx-controls-11.jar:"$REPO"/org/openjfx/javafx-controls/11/javafx-controls-11-win.jar:"$REPO"/org/openjfx/javafx-graphics/11/javafx-graphics-11.jar:"$REPO"/org/openjfx/javafx-graphics/11/javafx-graphics-11-win.jar:"$REPO"/org/openjfx/javafx-base/11/javafx-base-11.jar:"$REPO"/org/openjfx/javafx-base/11/javafx-base-11-win.jar:"$REPO"/org/openjfx/javafx-fxml/19/javafx-fxml-19.jar:"$REPO"/org/openjfx/javafx-fxml/19/javafx-fxml-19-win.jar:"$REPO"/commons-cli/commons-cli/1.4/commons-cli-1.4.jar:"$REPO"/org/apache/commons/commons-csv/1.5/commons-csv-1.5.jar:"$REPO"/com/googlecode/json-simple/json-simple/1.1.1/json-simple-1.1.1.jar:"$REPO"/com/google/code/gson/gson/2.8.6/gson-2.8.6.jar:"$REPO"/org/glassfish/javax.annotation/3.1.1/javax.annotation-3.1.1.jar:"$REPO"/org/glassfish/jersey/core/jersey-client/3.1.0/jersey-client-3.1.0.jar:"$REPO"/jakarta/ws/rs/jakarta.ws.rs-api/3.1.0/jakarta.ws.rs-api-3.1.0.jar:"$REPO"/org/glassfish/jersey/core/jersey-common/3.1.0/jersey-common-3.1.0.jar:"$REPO"/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:"$REPO"/org/glassfish/hk2/osgi-resource-locator/1.0.3/osgi-resource-locator-1.0.3.jar:"$REPO"/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:"$REPO"/org/glassfish/jersey/inject/jersey-hk2/3.1.0/jersey-hk2-3.1.0.jar:"$REPO"/org/glassfish/hk2/hk2-locator/3.0.3/hk2-locator-3.0.3.jar:"$REPO"/org/glassfish/hk2/external/aopalliance-repackaged/3.0.3/aopalliance-repackaged-3.0.3.jar:"$REPO"/org/glassfish/hk2/hk2-api/3.0.3/hk2-api-3.0.3.jar:"$REPO"/org/glassfish/hk2/hk2-utils/3.0.3/hk2-utils-3.0.3.jar:"$REPO"/org/javassist/javassist/3.28.0-GA/javassist-3.28.0-GA.jar:"$REPO"/jakarta/activation/jakarta.activation-api/2.0.1/jakarta.activation-api-2.0.1.jar:"$REPO"/org/json/json/20210307/json-20210307.jar:"$REPO"/org/mongodb/mongodb-driver-sync/4.5.1/mongodb-driver-sync-4.5.1.jar:"$REPO"/org/mongodb/mongodb-driver-core/4.5.1/mongodb-driver-core-4.5.1.jar:"$REPO"/org/mongodb/bson/4.5.1/bson-4.5.1.jar:"$REPO"/fr/ul/miage/musique/0.0.1-SNAPSHOT/musique-0.0.1-SNAPSHOT.jar
+
+ENDORSED_DIR=
+if [ -n "$ENDORSED_DIR" ] ; then
+  CLASSPATH=$BASEDIR/$ENDORSED_DIR/*:$CLASSPATH
+fi
+
+if [ -n "$CLASSPATH_PREFIX" ] ; then
+  CLASSPATH=$CLASSPATH_PREFIX:$CLASSPATH
+fi
+
+# For Cygwin, switch paths to Windows format before running java
+if $cygwin; then
+  [ -n "$CLASSPATH" ] && CLASSPATH=`cygpath --path --windows "$CLASSPATH"`
+  [ -n "$JAVA_HOME" ] && JAVA_HOME=`cygpath --path --windows "$JAVA_HOME"`
+  [ -n "$HOME" ] && HOME=`cygpath --path --windows "$HOME"`
+  [ -n "$BASEDIR" ] && BASEDIR=`cygpath --path --windows "$BASEDIR"`
+  [ -n "$REPO" ] && REPO=`cygpath --path --windows "$REPO"`
+fi
+
+exec "$JAVACMD" $JAVA_OPTS  \
+  -classpath "$CLASSPATH" \
+  -Dapp.name="run" \
+  -Dapp.pid="$$" \
+  -Dapp.repo="$REPO" \
+  -Dapp.home="$BASEDIR" \
+  -Dbasedir="$BASEDIR" \
+  musique.Launcher \
+  "$@"

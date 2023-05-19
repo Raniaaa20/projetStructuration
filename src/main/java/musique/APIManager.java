@@ -3,12 +3,6 @@ package musique;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -32,28 +26,60 @@ public class APIManager {
     
     //---------------------------Informations sur un tag -----------------------------//
     
-    private static List<String> extractTagNames(String jsonResponse) {
+    //retourne la liste des tag à partir de l'api pour l'afficher dans le choiceBox
+    public static List<String> extractTagNames(String jsonResponse) {
         List<String> tagNames = new ArrayList<>();
 
-        Gson gson = new Gson();
-        JsonObject jsonObject = gson.fromJson(jsonResponse, JsonObject.class);
-        JsonObject toptagsObject = jsonObject.getAsJsonObject("toptags");
-        JsonArray tagsArray = toptagsObject.getAsJsonArray("tag");
+        try {
+            JSONObject jsonObject = new JSONObject(jsonResponse);
+            JSONObject toptagsObject = jsonObject.getJSONObject("toptags");
+            JSONArray tagArray = toptagsObject.getJSONArray("tag");
 
-        for (JsonElement tagElement : tagsArray) {
-            JsonObject tagObject = tagElement.getAsJsonObject();
-            String tagName = tagObject.get("name").getAsString();
-            tagNames.add(tagName);
+            for (int i = 0; i < tagArray.length(); i++) {
+                JSONObject tagObject = tagArray.getJSONObject(i);
+                String tagName = tagObject.getString("name");
+                tagNames.add(tagName);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
 
         return tagNames;
     }
-    
-   
-   
-	
 
-    public void getTagInfo(String tag) {
+    public static List<String> getTagList() {
+        List<String> tagNames = new ArrayList<>();
+        String url = APIManager.getBaseUrl() + "?method=tag.getTopTags&api_key=" + APIManager.API_KEY + "&format=json";
+        StringBuilder jsonResponse = new StringBuilder();
+
+        try {
+            URL urlObject = new URL(url);
+            HttpURLConnection connection = (HttpURLConnection) urlObject.openConnection();
+            connection.setRequestMethod("GET");
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    jsonResponse.append(line);
+                }
+                reader.close();
+
+                if (jsonResponse.length() > 0) {
+                    tagNames = extractTagNames(jsonResponse.toString());
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return tagNames;
+    }
+
+
+
+    public static String getTagInfo(String tag) {
         String url = BASE_URL + "?method=tag.getinfo&tag=" + tag + "&api_key=" + API_KEY + "&format=json";
         StringBuilder jsonResponse = new StringBuilder();
 
@@ -72,48 +98,42 @@ public class APIManager {
                 reader.close();
 
                 if (jsonResponse.length() > 0) {
-                    String tagInfo = extractTagInfo(jsonResponse.toString());
-                    System.out.println(tagInfo);
+                    JSONObject jsonObject = new JSONObject(jsonResponse.toString());
+                    JSONObject tagObject = jsonObject.getJSONObject("tag");
+
+                    // Extraction des informations du tag
+                    String tagName = tagObject.getString("name"); // Nom du tag
+                    int tagCount = tagObject.getInt("total"); // Nombre de fois que le tag a été utilisé
+                    int tagReach = tagObject.getInt("reach"); // Portée du tag
+                    String tagSummary = tagObject.getJSONObject("wiki").getString("summary"); // Résumé du tag
+
+                    // Construction de la chaîne d'informations sur le tag
+                    StringBuilder tagInfo = new StringBuilder();
+                    tagInfo.append("Nom du tag : ").append(tagName).append("\n");
+                    tagInfo.append("Nombre de fois utilisé : ").append(tagCount).append("\n");
+                    tagInfo.append("Portée du tag : ").append(tagReach).append("\n");
+                    tagInfo.append("Résumé : ").append(tagSummary).append("\n");
+
+                    System.out.println(tagInfo.toString());
+                    return tagInfo.toString();
                 } else {
                     System.out.println("Aucune information disponible pour le tag : " + tag);
                 }
             } else {
                 System.out.println("Une erreur s'est produite lors de la récupération des informations du tag.");
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private String extractTagInfo(String jsonResponse) {
-        StringBuilder tagInfo = new StringBuilder();
-
-        try {
-            JSONObject jsonObject = new JSONObject(jsonResponse);
-            JSONObject tagObject = jsonObject.getJSONObject("tag");
-
-            String tagName = tagObject.getString("name");
-            int tagReach = tagObject.getInt("reach");
-            int tagTaggings = tagObject.optInt("taggings", 0);
-            int tagStreamable = tagObject.optInt("streamable", 0);
-
-            tagInfo.append("Nom du tag : ").append(tagName).append("\n");
-            tagInfo.append("Portée du tag : ").append(tagReach).append("\n");
-            tagInfo.append("Nombre de taggings : ").append(tagTaggings).append("\n");
-            tagInfo.append("Streamable : ").append(tagStreamable == 1 ? "Oui" : "Non").append("\n");
-
-        } catch (JSONException e) {
+        } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
 
-        return tagInfo.toString();
+        return ""; // Retourne une chaîne vide si aucune information n'est disponible
     }
-    
-    //-------------------------------------------------------------------------------------//
+
+
     
     //---------------------Informations sur un album---------------------------------------//
     
-    public void getAlbumInfo(String artistName, String albumName) {
+    public static String getAlbumInfo(String artistName, String albumName) {
         try {
             String encodedArtistName = encodeParameter(artistName);
             String encodedAlbumName = encodeParameter(albumName);
@@ -136,13 +156,18 @@ public class APIManager {
                 reader.close();
             }
 
-            extractAlbumInfo(jsonResponse.toString());
+            return extractAlbumInfo(jsonResponse.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return ""; // Retourne une chaîne vide si une erreur s'est produite ou si aucune information n'est disponible
     }
 
-    private void extractAlbumInfo(String jsonResponse) {
+    
+    private static String extractAlbumInfo(String jsonResponse) {
+        StringBuilder albumInfo = new StringBuilder();
+
         try {
             JSONObject jsonObject = new JSONObject(jsonResponse);
             JSONObject albumObject = jsonObject.getJSONObject("album");
@@ -160,17 +185,17 @@ public class APIManager {
 
             int totalDuration = 0;
 
-            System.out.println("Artiste : " + artist);
-            System.out.println("Album : " + albumName);
-            System.out.println("Nombre de pistes : " + trackCount);
+            albumInfo.append("Artiste : ").append(artist).append("\n");
+            albumInfo.append("Album : ").append(albumName).append("\n");
+            albumInfo.append("Nombre de pistes : ").append(trackCount).append("\n");
             
             if (!releaseDate.equals("N/A")) {
-                System.out.println("Date de publication : " + releaseDate);
+                albumInfo.append("Date de publication : ").append(releaseDate).append("\n");
             } else {
-                System.out.println("Date de publication : N/A");
+                albumInfo.append("Date de publication : N/A").append("\n");
             }
             
-            System.out.println("Pistes :");
+            albumInfo.append("Pistes :").append("\n");
 
             for (int i = 0; i < trackCount; i++) {
                 JSONObject trackObject = tracksArray.getJSONObject(i);
@@ -179,16 +204,18 @@ public class APIManager {
 
                 totalDuration += duration;
 
-                System.out.println("- " + trackName + " (" + duration + " secondes)");
+                albumInfo.append("- ").append(trackName).append(" (").append(duration).append(" secondes)").append("\n");
             }
 
-            System.out.println("Durée totale : " + totalDuration + " secondes");
+            albumInfo.append("Durée totale : ").append(totalDuration).append(" secondes");
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
+        return albumInfo.toString();
     }
 
-    private String encodeParameter(String parameter) {
+    private static String encodeParameter(String parameter) {
         try {
             return URLEncoder.encode(parameter, StandardCharsets.UTF_8.toString());
         } catch (IOException e) {
@@ -200,188 +227,57 @@ public class APIManager {
     //---------------------------------------------------------------------------------//
     //----------------------------------ARTIST-----------------------------------------//
     
-    public void getArtistInfo(String artistName) {
+    public static String getArtistInfo(String artistName) {
         try {
             String encodedArtistName = URLEncoder.encode(artistName, "UTF-8");
-            String url = BASE_URL + "?method=artist.getinfo&artist=" + encodedArtistName + "&api_key=" + API_KEY + "&format=json";
-
-            StringBuilder jsonResponse = new StringBuilder();
-
-            URL urlObject = new URL(url);
-            HttpURLConnection connection = (HttpURLConnection) urlObject.openConnection();
-            connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    jsonResponse.append(line);
-                }
-                reader.close();
-            }
-
-            extractArtistInfo(jsonResponse.toString());
-            
-         // Obtenir le top des albums
+            String artistInfoUrl = BASE_URL + "?method=artist.getinfo&artist=" + encodedArtistName + "&api_key=" + API_KEY + "&format=json";
             String topAlbumsUrl = BASE_URL + "?method=artist.gettopalbums&artist=" + encodedArtistName + "&api_key=" + API_KEY + "&format=json";
-            StringBuilder topAlbumsResponse = new StringBuilder();
 
-            URL topAlbumsUrlObject = new URL(topAlbumsUrl);
-            HttpURLConnection topAlbumsConnection = (HttpURLConnection) topAlbumsUrlObject.openConnection();
-            topAlbumsConnection.setRequestMethod("GET");
+            StringBuilder artistInfoAndTopAlbums = new StringBuilder();
 
-            int topAlbumsResponseCode = topAlbumsConnection.getResponseCode();
-            if (topAlbumsResponseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader topAlbumsReader = new BufferedReader(new InputStreamReader(topAlbumsConnection.getInputStream()));
-                String line;
-                while ((line = topAlbumsReader.readLine()) != null) {
-                    topAlbumsResponse.append(line);
-                }
-                topAlbumsReader.close();
+            // Get artist info
+            JSONObject artistInfoObject = sendRequest(artistInfoUrl);
+            if (artistInfoObject != null) {
+                // Get artist biography
+                String artistBiography = artistInfoObject.getJSONObject("artist").getJSONObject("bio").getString("summary");
+
+             // Get number of listeners
+                JSONObject statsObject = artistInfoObject.getJSONObject("artist").getJSONObject("stats");
+                String listenersString = statsObject.getString("listeners");
+                int listeners = Integer.parseInt(listenersString);
+                
+
+
+             // Get number of plays
+                int playCount = statsObject.getInt("playcount");
+                
+
+                artistInfoAndTopAlbums.append("---Nom de l'artiste : ").append(artistName).append("\n\n");
+                artistInfoAndTopAlbums.append("---Biographie : ").append(artistBiography).append("\n\n");
+                artistInfoAndTopAlbums.append("---Nombre d'auditeurs : ").append(listeners).append("\n\n");
+                artistInfoAndTopAlbums.append("---Nombre de lectures : ").append(playCount).append("\n\n");
             }
 
-            extractTopAlbumsInfo(topAlbumsResponse.toString());
+            // Get top albums info
+            JSONObject topAlbumsObject = sendRequest(topAlbumsUrl);
+            if (topAlbumsObject != null) {
+                String topAlbumsInfo = extractTopAlbumsInfo(topAlbumsObject.toString());
+                artistInfoAndTopAlbums.append(topAlbumsInfo);
+            }
+
+            return artistInfoAndTopAlbums.toString();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    private void extractArtistInfo(String jsonResponse) {
-        try {
-            JSONObject jsonObject = new JSONObject(jsonResponse);
-            JSONObject artistObject = jsonObject.getJSONObject("artist");
-
-            String artistName = artistObject.getString("name");
-            System.out.println("Nom de l'artiste : " + artistName);
-
-            // Récupérer les artistes similaires
-            if (artistObject.has("similar")) {
-                JSONObject similarObject = artistObject.getJSONObject("similar");
-                if (similarObject.has("artist")) {
-                    JSONArray artistArray = similarObject.getJSONArray("artist");
-                    System.out.println("Artistes similaires :");
-                    for (int i = 0; i < artistArray.length(); i++) {
-                        JSONObject similarArtist = artistArray.getJSONObject(i);
-                        String similarArtistName = similarArtist.getString("name");
-                        System.out.println("- " + similarArtistName);
-                    }
-                }
-            }
-
-            // Récupérer le top des albums de l'artiste
-            if (artistObject.has("topalbums")) {
-                JSONObject topAlbumsObject = artistObject.getJSONObject("topalbums");
-                if (topAlbumsObject.has("album")) {
-                    JSONArray albumArray = topAlbumsObject.getJSONArray("album");
-                    System.out.println("Top des albums de l'artiste :");
-                    for (int i = 0; i < albumArray.length(); i++) {
-                        JSONObject album = albumArray.getJSONObject(i);
-                        String albumName = album.getString("name");
-                        System.out.println("- " + albumName);
-                    }
-                }
-            }
         } catch (JSONException e) {
             e.printStackTrace();
         }
-    }
-    
-   /* public void getInfoArtist(String artistName) {
-        try {
-            String encodedArtistName = URLEncoder.encode(artistName, "UTF-8");
-            String url = BASE_URL + "?method=artist.getinfo&artist=" + encodedArtistName + "&api_key=" + API_KEY + "&format=json";
 
-            StringBuilder jsonResponse = new StringBuilder();
-
-            URL urlObject = new URL(url);
-            HttpURLConnection connection = (HttpURLConnection) urlObject.openConnection();
-            connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    jsonResponse.append(line);
-                }
-                reader.close();
-            }
-
-            extractArtistInfo(jsonResponse.toString());
-
-            // Obtenir le top des albums
-            String topAlbumsUrl = BASE_URL + "?method=artist.gettopalbums&artist=" + encodedArtistName + "&api_key=" + API_KEY + "&format=json";
-            StringBuilder topAlbumsResponse = new StringBuilder();
-
-            URL topAlbumsUrlObject = new URL(topAlbumsUrl);
-            HttpURLConnection topAlbumsConnection = (HttpURLConnection) topAlbumsUrlObject.openConnection();
-            topAlbumsConnection.setRequestMethod("GET");
-
-            int topAlbumsResponseCode = topAlbumsConnection.getResponseCode();
-            if (topAlbumsResponseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader topAlbumsReader = new BufferedReader(new InputStreamReader(topAlbumsConnection.getInputStream()));
-                String line;
-                while ((line = topAlbumsReader.readLine()) != null) {
-                    topAlbumsResponse.append(line);
-                }
-                topAlbumsReader.close();
-            }
-
-            extractTopAlbumsInfo(topAlbumsResponse.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
-
-    private static void extractTopAlbumsInfo(String jsonResponse) {
-        try {
-            JSONObject jsonObject = new JSONObject(jsonResponse);
-            JSONObject topAlbumsObject = jsonObject.getJSONObject("topalbums");
-
-            if (topAlbumsObject.has("album")) {
-                JSONArray albumArray = topAlbumsObject.getJSONArray("album");
-                System.out.println("Top des albums : ");
-                for (int i = 0; i < albumArray.length(); i++) {
-                    JSONObject album = albumArray.getJSONObject(i);
-                    String albumName = album.getString("name");
-                    System.out.println("- " + albumName);
-                }
-            } else {
-                System.out.println("Aucun album trouvé pour cet artiste.");
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        return ""; // En cas d'erreur ou d'exception, retourner une chaîne vide
     }
 
-   
-    
-    //-------------------------TRENDS--------------------------------------------//
-    
-    public void getGlobalTrendsInfo() {
-        try {
-            // Classement top 10 chansons
-            String topTracksUrl = "http://ws.audioscrobbler.com/2.0/?method=chart.getTopTracks&api_key=" + API_KEY + "&format=json&limit=10";
-            String topTracksResponse = sendGetRequest1(topTracksUrl);
-            extractTopTracksInfo(topTracksResponse);
+    private static JSONObject sendRequest(String url) throws IOException, JSONException {
+        StringBuilder jsonResponse = new StringBuilder();
 
-            // Classement top 10 albums
-            String topAlbumsUrl = "http://ws.audioscrobbler.com/2.0/?method=chart.getTopAlbums&api_key=" + API_KEY + "&format=json&limit=10";
-            String topAlbumsResponse = sendGetRequest1(topAlbumsUrl);
-            extractTopAlbumsInfo(topAlbumsResponse);
-
-            // Classement top 10 styles (tags)
-            String topTagsUrl = "http://ws.audioscrobbler.com/2.0/?method=chart.getTopTags&api_key=" + API_KEY + "&format=json&limit=10";
-            String topTagsResponse = sendGetRequest1(topTagsUrl);
-            extractTopTagsInfo(topTagsResponse);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static String sendGetRequest1(String url) throws IOException {
         URL urlObject = new URL(url);
         HttpURLConnection connection = (HttpURLConnection) urlObject.openConnection();
         connection.setRequestMethod("GET");
@@ -389,105 +285,155 @@ public class APIManager {
         int responseCode = connection.getResponseCode();
         if (responseCode == HttpURLConnection.HTTP_OK) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            StringBuilder response = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
-                response.append(line);
+                jsonResponse.append(line);
             }
             reader.close();
-            return response.toString();
-        } else {
-            throw new IOException("Request failed with response code: " + responseCode);
+
+            return new JSONObject(jsonResponse.toString());
         }
+
+        return null;
     }
 
-    private static void extractTopTracksInfo(String response) throws JSONException {
-        JSONObject jsonObject = new JSONObject(response);
-        JSONArray itemsArray = jsonObject.getJSONArray("items");
+    
+    private static String extractTopAlbumsInfo(String jsonResponse) {
+        try {
+            JSONObject jsonObject = new JSONObject(jsonResponse);
+            JSONObject topAlbumsObject = jsonObject.getJSONObject("topalbums");
 
-        System.out.println("Classement top 10 chansons :");
-        for (int i = 0; i < itemsArray.length(); i++) {
-            JSONObject track = itemsArray.getJSONObject(i);
-            String trackName = track.getString("name");
-            String artistName = track.getJSONArray("artists").getJSONObject(0).getString("name");
-            int popularity = track.getInt("popularity");
-            System.out.println("- Titre : " + trackName);
-            System.out.println("  Artiste : "+artistName);
-            System.out.println(" Popularité : " + popularity);
-            System.out.println();
-      }
-      }
-    
-    
-     private void extractTopAlbumsInfos(String response) throws JSONException {
-     JSONObject jsonObject = new JSONObject(response);
-     JSONArray itemsArray = jsonObject.getJSONArray("items");
-     System.out.println("Classement top 10 albums :");
-     for (int i = 0; i < itemsArray.length(); i++) {
-         JSONObject album = itemsArray.getJSONObject(i);
-         String albumName = album.getString("name");
-         JSONArray artistsArray = album.getJSONArray("artists");
-         StringBuilder artistNames = new StringBuilder();
-         for (int j = 0; j < artistsArray.length(); j++) {
-             if (j > 0) {
-                 artistNames.append(", ");
-             }
-             artistNames.append(artistsArray.getJSONObject(j).getString("name"));
-         }
-         int popularity = album.getInt("popularity");
-         System.out.println("- Album : " + albumName);
-         System.out.println("  Artistes : " + artistNames.toString());
-         System.out.println("  Popularité : " + popularity);
-         System.out.println();
-     }
-     }
+            StringBuilder topAlbumsInfo = new StringBuilder();
+            if (topAlbumsObject.has("album")) {
+                JSONArray albumArray = topAlbumsObject.getJSONArray("album");
+                topAlbumsInfo.append("Top des albums :\n");
+                for (int i = 0; i < albumArray.length(); i++) {
+                    JSONObject album = albumArray.getJSONObject(i);
+                    String albumName = album.getString("name");
+                    topAlbumsInfo.append("- ").append(albumName).append("\n");
+                }
+            } else {
+                topAlbumsInfo.append("Aucun album trouvé pour cet artiste.");
+            }
 
-     private void extractTopGenresInfo(String response) throws JSONException {
-     JSONObject jsonObject = new JSONObject(response);
-     JSONArray itemsArray = jsonObject.getJSONArray("items");
-     System.out.println("Classement top 10 styles (genres) :");
-     for (int i = 0; i < itemsArray.length(); i++) {
-         JSONObject artist = itemsArray.getJSONObject(i);
-         JSONArray genresArray = artist.getJSONArray("genres");
-         String artistName = artist.getString("name");
-         StringBuilder genres = new StringBuilder();
-         for (int j = 0; j < genresArray.length(); j++) {
-             if (j > 0) {
-                 genres.append(", ");
-             }
-             genres.append(genresArray.getString(j));
-         }
-         System.out.println("- Artiste : " + artistName);
-         System.out.println("  Styles : " + genres.toString());
-         System.out.println();
-     }
-     }
-    
+            return topAlbumsInfo.toString();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
    
+    
+    //-------------------------TRENDS--------------------------------------------//
+    
+    public static String getGlobalTrendsInfo() {
+        StringBuilder trendsInfo = new StringBuilder();
+
+        trendsInfo.append("Top Artists:\n");
+        JSONArray topArtists = getTopArtists();
+        trendsInfo.append(getJSONArrayValues(topArtists, "name", "listeners", "playcount"));
+        trendsInfo.append("\n");
+
+        trendsInfo.append("Top Tracks:\n");
+        JSONArray topTracks = getTopTracks();
+        trendsInfo.append(getJSONArrayValues(topTracks, "name", "listeners", "playcount"));
+        trendsInfo.append("\n");
+
+        trendsInfo.append("Top Tags:\n");
+        JSONArray topTags = getTopTags();
+        trendsInfo.append(getJSONArrayValues(topTags, "name", "reach", "taggings"));
+        trendsInfo.append("\n");
+
+        return trendsInfo.toString();
+    }
+
+    public static JSONArray getTopArtists() {
+        String url = BASE_URL + "?method=chart.gettopartists&api_key=" + API_KEY + "&format=json";
+        return getJSONArrayFromUrl(url, "artists", "artist");
+    }
+
+    public static JSONArray getTopTags() {
+        String url = BASE_URL + "?method=chart.gettoptags&api_key=" + API_KEY + "&format=json";
+        return getJSONArrayFromUrl(url, "tags", "tag");
+    }
+
+    public static JSONArray getTopTracks() {
+        String url = BASE_URL + "?method=chart.gettoptracks&api_key=" + API_KEY + "&format=json";
+        return getJSONArrayFromUrl(url, "tracks", "track");
+    }
+
+    private static String getJSONArrayValues(JSONArray jsonArray, String nameKey, String value1Key, String value2Key) {
+        StringBuilder values = new StringBuilder();
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject object = jsonArray.getJSONObject(i);
+            String name = object.getString(nameKey);
+            int value1 = object.getInt(value1Key);
+            int value2 = object.getInt(value2Key);
+
+            values.append("Name: ").append(name).append(", ").append(value1Key).append(" : ").append(value1).append(", ").append(value2Key).append(" : ").append(value2).append("\n");
+        }
+       
+        return values.toString();
+    }
+
+
+    
+    
+    //----------------------------GLOBAL TRENDS BY COUNTRY-------------------//
+   
+    public static String getGlobalTrendsInfoCountry(String country) {
+        StringBuilder trendsInfo = new StringBuilder();
+
+        // Obtention des tendances des top artistes par pays
+        JSONArray topArtistsByCountry = getTopArtistsByCountry(country);
+        trendsInfo.append("Top Artists in ").append(country).append(":\n");
+        trendsInfo.append(getJSONArrayValues(topArtistsByCountry, "name", "listeners"));
+        trendsInfo.append("\n");
+
+        // Obtention des tendances des top tracks par pays
+        JSONArray topTracksByCountry = getTopTracksByCountry(country);
+        trendsInfo.append("Top Tracks in ").append(country).append(":\n");
+        trendsInfo.append(getJSONArrayValues(topTracksByCountry, "name", "listeners"));
+        trendsInfo.append("\n");
+
+        return trendsInfo.toString();
+    }
+
+   private static Object getJSONArrayValues(JSONArray jsonArray, String nameKey, String value1Key) {
+	   StringBuilder values = new StringBuilder();
+       for (int i = 0; i < jsonArray.length(); i++) {
+           JSONObject object = jsonArray.getJSONObject(i);
+           String name = object.getString(nameKey);
+           int value1 = object.getInt(value1Key);
+          
+
+           values.append("Nom : ").append(name).append(", ").append("Nombre d'auditeurs : ").append(" : ").append(value1).append(", ").append("\n");
+       }
+      
+       return values.toString();
+		
+	}
+
+
+
+    public static JSONArray getTopArtistsByCountry(String country) {
+        String url = BASE_URL + "?method=geo.gettopartists&country=" + country + "&api_key=" + API_KEY + "&format=json";
+        return getJSONArrayFromUrl(url, "topartists", "artist");
+    }
+
+    public static JSONArray getTopTracksByCountry(String country) {
+        String url = BASE_URL + "?method=geo.gettoptracks&country=" + country + "&api_key=" + API_KEY + "&format=json";
+        return getJSONArrayFromUrl(url, "tracks", "track");
+    }
+
+    
+  
 
     //------------------------TRENDS PAR COUNTRY---------------------------------//
      
-     public static void getCountryTrendsInfo(String country) {
-         try {
-             // Classement top 10 chansons par pays
-             String topTracksUrl = "http://ws.audioscrobbler.com/2.0/?method=geo.getTopTracks&country=" + country + "&api_key=" + API_KEY + "&format=json";
-             String topTracksResponse = sendGetRequest1(topTracksUrl);
-             extractTopTracksInfo(topTracksResponse);
-
-             // Classement top 10 albums par pays
-             String topAlbumsUrl = "http://ws.audioscrobbler.com/2.0/?method=geo.getTopAlbums&country=" + country + "&api_key=" + API_KEY + "&format=json";
-             String topAlbumsResponse = sendGetRequest1(topAlbumsUrl);
-             extractTopAlbumsInfo(topAlbumsResponse);
-
-             // Classement top 10 styles (tags) par pays
-             String topTagsUrl = "http://ws.audioscrobbler.com/2.0/?method=geo.getTopTags&country=" + country + "&api_key=" + API_KEY + "&format=json";
-             String topTagsResponse = sendGetRequest1(topTagsUrl);
-             extractTopTagsInfo(topTagsResponse);
-
-         } catch (IOException | JSONException e) {
-             e.printStackTrace();
-         }
-     }
+   
      
      private static String sendGetRequest(String url) throws IOException {
          URL urlObject = new URL(url);
@@ -510,36 +456,19 @@ public class APIManager {
          }
      }
      
-     private static void extractTopTagsInfo(String response) throws JSONException {
-    	    JSONObject jsonObject = new JSONObject(response);
-    	    JSONObject tagsObject = jsonObject.getJSONObject("tags");
-    	    JSONArray tagArray = tagsObject.getJSONArray("tag");
-
-    	    System.out.println("Classement top 10 styles (tags) :");
-    	    for (int i = 0; i < tagArray.length(); i++) {
-    	        JSONObject tag = tagArray.getJSONObject(i);
-    	        String tagName = tag.getString("name");
-    	        int reach = tag.getInt("reach");
-    	        int taggings = tag.getInt("taggings");
-
-    	        System.out.println("- Style : " + tagName);
-    	        System.out.println("  Portée : " + reach);
-    	        System.out.println("  Nombre de marquages : " + taggings);
-    	        System.out.println();
-    	    }
-    	}
-     
+   
      
      //-----------------------------ALBUMS & CHANSONS SIMILAIRES ENTRE ARTISTES------------//
      
      
-     public void searchSimilarAlbumsAndSongs(String artist1, String artist2) {
+     public static String searchSimilarAlbumsAndSongs(String artist1, String artist2) {
+    	    StringBuilder similarInfo = new StringBuilder();
+
     	    try {
-    	        
     	        String url = "http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=" + artist1 +
     	                "&api_key=" + API_KEY + "&format=json";
 
-    	        String response = sendGetRequest1(url);
+    	        String response = sendGetRequest(url);
     	        JSONObject json = new JSONObject(response);
 
     	        JSONArray similarArtistsArray = json.getJSONObject("similarartists").getJSONArray("artist");
@@ -552,43 +481,97 @@ public class APIManager {
     	        }
 
     	        // Recherchez des albums similaires pour chaque artiste similaire
+    	        int albumCount = 0;
     	        for (String similarArtist : similarArtists) {
+    	            if (albumCount >= 10) {
+    	                break;
+    	            }
+    	            
     	            url = "http://ws.audioscrobbler.com/2.0/?method=artist.gettopalbums&artist=" + similarArtist +
     	                    "&api_key=" + API_KEY + "&format=json";
-    	            response = sendGetRequest1(url);
+    	            response = sendGetRequest(url);
     	            json = new JSONObject(response);
 
     	            JSONArray topAlbumsArray = json.getJSONObject("topalbums").getJSONArray("album");
 
     	            // Obtenez les noms des albums similaires
     	            for (int i = 0; i < topAlbumsArray.length(); i++) {
+    	                if (albumCount >= 10) {
+    	                    break;
+    	                }
+
     	                String albumName = topAlbumsArray.getJSONObject(i).getString("name");
-    	                System.out.println("Similar Album: " + albumName);
+    	                similarInfo.append("Similar Album: ").append(albumName).append("\n");
+    	                albumCount++;
     	            }
     	        }
 
+    	        similarInfo.append("\n"); // Retour de ligne entre la partie "Tracks" et "Albums"
+
     	        // Recherchez des chansons similaires pour chaque artiste similaire
+    	        int trackCount = 0;
     	        for (String similarArtist : similarArtists) {
+    	            if (trackCount >= 10) {
+    	                break;
+    	            }
+    	            
     	            url = "http://ws.audioscrobbler.com/2.0/?method=artist.gettoptracks&artist=" + similarArtist +
     	                    "&api_key=" + API_KEY + "&format=json";
-    	            response = sendGetRequest1(url);
+    	            response = sendGetRequest(url);
     	            json = new JSONObject(response);
 
     	            JSONArray topTracksArray = json.getJSONObject("toptracks").getJSONArray("track");
 
     	            // Obtenez les noms des chansons similaires
     	            for (int i = 0; i < topTracksArray.length(); i++) {
+    	                if (trackCount >= 10) {
+    	                    break;
+    	                }
+
     	                String trackName = topTracksArray.getJSONObject(i).getString("name");
-    	                System.out.println("Similar Track: " + trackName);
+    	                similarInfo.append("Similar Track: ").append(trackName).append("\n");
+    	                trackCount++;
     	            }
     	        }
 
     	    } catch (IOException | JSONException e) {
     	        e.printStackTrace();
     	    }
+
+    	    return similarInfo.toString();
     	}
 
-    	
+
+
+
+    //--------------------------------------------------------------------------//
+     
+     
+
+     private static JSONArray getJSONArrayFromUrl(String urlString, String parentObject, String childArray) {
+         try {
+             URL url = new URL(urlString);
+             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+             connection.setRequestMethod("GET");
+
+             BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+             StringBuilder response = new StringBuilder();
+             String line;
+             while ((line = reader.readLine()) != null) {
+                 response.append(line);
+             }
+             reader.close();
+
+             JSONObject jsonObject = new JSONObject(response.toString());
+             return jsonObject.getJSONObject(parentObject).getJSONArray(childArray);
+         } catch (Exception e) {
+             e.printStackTrace();
+         }
+         
+         
+         return new JSONArray();
+     }
+ 
   
      //--------------------------------------------------------------------------//
 

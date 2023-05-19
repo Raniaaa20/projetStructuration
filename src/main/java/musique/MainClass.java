@@ -37,9 +37,9 @@ public class MainClass {
                 case "4":
                 	getGlobalTrendsInfo();
                     break;
-                case "5":
+              /*  case "5":
                 	getGlobalTrendsInfoCountry(scanner);
-                    break;
+                    break;*/
                 case "6":
                 	searchSimilarAlbumsAndSongs(scanner);
                     break;
@@ -92,7 +92,7 @@ public class MainClass {
 	    String tag = scanner.nextLine();
 
 	    // Appel de la méthode correspondante dans LastFmAPIManager
-	    apiManager.getTagInfo(tag);
+	    //apiManager.getTagInfo(tag);
 	}
 
 	public static List<String> getTagList() {
@@ -181,14 +181,14 @@ public class MainClass {
 	
 
 	//-------------------------TREND BY COUNTRY----------------------------------------//
-	public static void getGlobalTrendsInfoCountry(Scanner scanner) {
+	/*public static void getGlobalTrendsInfoCountry(Scanner scanner) {
 	   
 	    System.out.println("Veuillez saisir le pays pour obtenir les tendances : ");
 	    String country = scanner.nextLine();
 
 	    APIManager apiManager = new APIManager();
-	    apiManager.getCountryTrendsInfo(country);
-	}
+	    apiManager.getGlobalTrendsInfoCountry(country);
+	}*/
 	
 	//----------------------SIMILAR SONGS & ALBUMS------------------------------------//
 	

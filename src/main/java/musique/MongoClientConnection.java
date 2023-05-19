@@ -11,7 +11,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 public class MongoClientConnection {
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         
         String uri = "mongodb://localhost:27017";
 
@@ -37,5 +37,5 @@ public class MongoClientConnection {
                 System.err.println(me);
             }
         }
-    }
+    }*/
 }

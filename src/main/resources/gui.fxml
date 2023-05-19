@@ -1,16 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="568.0" prefWidth="927.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="musique.Controller">
    <children>
-      <Text layoutX="144.0" layoutY="27.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Collecte de statistiques et de recommandation de musique">
-         <font>
-            <Font name="System Bold" size="12.0" />
-         </font>
-      </Text>
+      <SplitPane dividerPositions="0.12759643916913946" layoutX="-1.0" orientation="VERTICAL" prefHeight="568.0" prefWidth="927.0">
+        <items>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="61.0" prefWidth="934.0" style="-fx-background-color: FFF7E1;">
+               <children>
+                  <Text layoutX="148.0" layoutY="32.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Application de staristiques et de recommendations de musique">
+                     <font>
+                        <Font name="System Bold" size="14.0" />
+                     </font>
+                  </Text>
+               </children>
+            </AnchorPane>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+               <children>
+                  <SplitPane dividerPositions="0.8499999999999999" layoutX="-3.0" layoutY="-3.0" orientation="VERTICAL" prefHeight="505.0" prefWidth="927.0">
+                    <items>
+                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+                           <children>
+                              <SplitPane dividerPositions="0.4197976878612717" layoutX="1.0" layoutY="1.0" prefHeight="424.0" prefWidth="925.0">
+                                <items>
+                                  <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="421.0" prefWidth="324.0" style="-fx-background-color: FFDA75;">
+                                       <children>
+                                          <Pane layoutX="8.0" layoutY="210.0" prefHeight="45.0" prefWidth="361.0" style="-fx-background-color: FFF7E1;">
+                                             <children>
+                                                <Button fx:id="bsimil" layoutX="58.0" layoutY="6.0" mnemonicParsing="false" onAction="#getSimilar" text="Chansons &amp; albums similaires entre artistes" />
+                                             </children></Pane>
+                                          <Pane layoutX="8.0" layoutY="92.0" prefHeight="105.0" prefWidth="361.0" style="-fx-background-color: FFF7E1;">
+                                             <children>
+                                                <Button fx:id="bpays" layoutX="202.0" layoutY="28.0" mnemonicParsing="false" onAction="#getTrendPays" text="Par pays" />
+                                                <Button fx:id="bglob" layoutX="84.0" layoutY="28.0" mnemonicParsing="false" onAction="#getTrendGlob" text="Globales" />
+                                                <Button fx:id="bevolution" layoutX="98.0" layoutY="66.0" mnemonicParsing="false" onAction="#getEvolution" prefHeight="31.0" prefWidth="165.0" text="Evolution des tendances " />
+                                             </children></Pane>
+                                          <Pane layoutX="8.0" layoutY="13.0" prefHeight="67.0" prefWidth="361.0" style="-fx-background-color: FFF7E1;">
+                                             <children>
+                                                <Button fx:id="bartist" layoutX="256.0" layoutY="27.0" mnemonicParsing="false" onAction="#getArtist" text="Artiste" />
+                                                <Button fx:id="balbum" layoutX="158.0" layoutY="27.0" mnemonicParsing="false" onAction="#getAlbum" text="Album" />
+                                                <Button fx:id="btag" layoutX="67.0" layoutY="28.0" mnemonicParsing="false" onAction="#getTag" text="Tag" />
+                                             </children></Pane>
+                                          <Text layoutX="13.0" layoutY="34.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Avoir des informations sur un : " />
+                                          <Text layoutX="13.0" layoutY="109.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Consulter les tendances :" />
+                                       </children>
+                                    </AnchorPane>
+                                  <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="421.0" prefWidth="590.0">
+                                       <children>
+                                          <ChoiceBox fx:id="taglist" layoutX="368.0" layoutY="8.0" prefWidth="150.0" />
+                                          <Text fx:id="instruct" layoutX="14.0" layoutY="27.0" strokeType="OUTSIDE" strokeWidth="0.0" />
+                                          <TextArea fx:id="result" layoutX="41.0" layoutY="79.0" prefHeight="327.0" prefWidth="455.0" />
+                                          <Button fx:id="OK" layoutX="349.0" layoutY="34.0" minWidth="53.0" mnemonicParsing="false" prefHeight="31.0" prefWidth="53.0" text="OK" />
+                                          <TextField fx:id="albumtext" layoutX="200.0" layoutY="37.0" prefHeight="25.0" prefWidth="131.0" promptText="Nom album" />
+                                          <TextField fx:id="artisttext" layoutX="41.0" layoutY="37.0" prefHeight="25.0" prefWidth="131.0" promptText="Nom artiste" />
+                                       </children></AnchorPane>
+                                </items>
+                              </SplitPane>
+                           </children>
+                        </AnchorPane>
+                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="105.0" prefWidth="911.0" style="-fx-background-color: FFF7E1;" />
+                    </items>
+                  </SplitPane>
+               </children>
+            </AnchorPane>
+        </items>
+      </SplitPane>
    </children>
 </Pane>
